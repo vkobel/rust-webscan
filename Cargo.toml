@@ -7,4 +7,3 @@ authors = ["Vincent Kobel <vincent.kobel@nagra.com>"]
 hyper = "0.9.1"
 getopts = "0.2.14"
 regex = "0.1"
-sha1 = "0.1.1"
