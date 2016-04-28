@@ -1,7 +1,3 @@
-// for later use maybe
-//extern crate getopts;
-//use getopts::Options;
-
 extern crate hyper;
 extern crate regex;
 
@@ -32,22 +28,22 @@ impl WebCrawler {
         }
     }
 
-    fn get_web_page(&mut self, uri: &str) -> (String, String) {
+    fn get_web_page(&mut self, uri: &str) -> String {
         let url = self.base_host.clone() + "/" + uri;
         let mut res = self.client.get(&url).header(Connection::close()).send().unwrap();
         let mut body = String::new();
         res.read_to_string(&mut body).unwrap();
         self.links_visited.push(uri.to_string());
-        (uri.to_string(), body)
+        body
     }
 
-    fn extract_links(&mut self, html: &str, url: &str) {
-        for link in self.href_regex.captures_iter(html){
+    fn extract_links(&mut self, url: &str, html: &str) {
+        for link in self.href_regex.captures_iter(&html){
             let link_ref = link.at(1).unwrap().to_string();
 
             // !!! Lazy checking here - to improve !!!
             // Drops get parameters (start with ?)...
-            // Only folder check is ending by /
+            // Only folder check is if it's ending by /
             if !self.links_visited.contains(&link_ref) && !link_ref.starts_with("http") && !link_ref.starts_with("?"){
                 if link_ref.ends_with("/") {
                     self.links_to_visit.push(url.to_string() + &link_ref);
@@ -59,20 +55,19 @@ impl WebCrawler {
     }
 
     fn explore(&mut self) {
-        println!("Starting...");
-
+        println!("\nStarting on host: {}...", self.base_host);
         loop {
-            
-            print!("\rRemaining: {} - Files found: {}             ", self.links_to_visit.len(), self.files_found.len());
+            // Add some whitespace to erase the line
+            print!("\rRemaining: {} - Files found: {}        ", self.links_to_visit.len(), self.files_found.len());
             io::stdout().flush().unwrap();
 
-            let val = self.links_to_visit.pop();
-            if val == None {
-                break;
+            match self.links_to_visit.pop() {
+                None => break,
+                Some(ref val) => {
+                    let ref body = self.get_web_page(val);
+                    self.extract_links(val, body);
+                }
             }
-
-            let (url, body) = self.get_web_page(&val.unwrap());
-            self.extract_links(&body, &url);
         }
     }
 }
@@ -80,24 +75,22 @@ impl WebCrawler {
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
-        println!("Usage: webcan [host] [outfile_pattern]");
+        println!("Usage: webscan [host] [outfile_pattern]");
         return;
     }
-
     let ref host = args[1];
     let ref outfile = args[2];
-    println!("======== ALPHA - only follows relative links! ========");
-    println!("======== Host is {} ========\n", host);
 
+    println!("======== ALPHA - only follows relative links! ========");
     let mut wc = WebCrawler::new(host);
-    let (url, body) = wc.get_web_page("/");
-    wc.extract_links(&body, &url);
+    let ref body = wc.get_web_page("/");
+    wc.extract_links("/", body);
     wc.explore();
 
+    // Write output
     let mut buffer = File::create(outfile).unwrap();
     for l in wc.files_found {
         buffer.write_fmt(format_args!("{}\n", l)).unwrap();
     }
     println!("\nDone! Results are in {}", outfile);
-
 }
