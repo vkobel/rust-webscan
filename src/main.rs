@@ -62,8 +62,8 @@ impl WebCrawler {
         println!("Starting...");
 
         loop {
-
-            print!("\rRemaining: {} - Files found: {}", self.links_to_visit.len(), self.files_found.len());
+            
+            print!("\rRemaining: {} - Files found: {}             ", self.links_to_visit.len(), self.files_found.len());
             io::stdout().flush().unwrap();
 
             let val = self.links_to_visit.pop();
