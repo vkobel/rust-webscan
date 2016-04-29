@@ -17,7 +17,7 @@ struct WebCrawler {
     files_found: Vec<String>
 }
 impl WebCrawler {
-    fn new(host: &str) -> WebCrawler {
+    pub fn new(host: &str) -> WebCrawler {
         WebCrawler {
             client: Client::new(),
             base_host: host.to_string(), // should remove all trailing slashes
@@ -56,18 +56,15 @@ impl WebCrawler {
 
     fn explore(&mut self) {
         println!("\nStarting on host: {}...", self.base_host);
-        loop {
+        
+        while let Some(ref val) = self.links_to_visit.pop(){
+
             // Add some whitespace to erase the line
             print!("\rRemaining: {} - Files found: {}        ", self.links_to_visit.len(), self.files_found.len());
             io::stdout().flush().unwrap();
 
-            match self.links_to_visit.pop() {
-                None => break,
-                Some(ref val) => {
-                    let ref body = self.get_web_page(val);
-                    self.extract_links(val, body);
-                }
-            }
+            let ref body = self.get_web_page(val);
+            self.extract_links(val, body);
         }
     }
 }
